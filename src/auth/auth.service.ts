@@ -42,7 +42,29 @@ export class AuthService {
             throw new UnauthorizedException('Invalid credentials');
         }
 
-        const payload = { email: user.email, sub: user._id };
+        const payload = { email: user.email, sub: user._id, role: user.role };
+        return {
+            access_token: this.jwtService.sign(payload),
+            user,
+        };
+    }
+
+    async googleLogin(req) {
+        if (!req.user) {
+            throw new UnauthorizedException('No user from google');
+        }
+
+        let user = await this.usersService.findByEmail(req.user.email);
+        if (!user) {
+            user = await this.usersService.create({
+                email: req.user.email,
+                fullName: req.user.fullName,
+                avatar: req.user.avatar,
+                password: Math.random().toString(36).slice(-8), // Dummy password
+            });
+        }
+
+        const payload = { email: user.email, sub: user._id, role: user.role };
         return {
             access_token: this.jwtService.sign(payload),
             user,
