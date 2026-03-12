@@ -3,14 +3,17 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
-
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 
+@ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
     constructor(private authService: AuthService) { }
 
     @Get('me')
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Lấy thông tin profile người dùng hiện tại' })
     @UseGuards(JwtAuthGuard)
     getProfile(@Req() req) {
         return req.user;
