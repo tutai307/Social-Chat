@@ -5,7 +5,13 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+
+  // Enable CORS for frontend
+  app.enableCors({
+    origin: 'http://localhost:5173',
+    credentials: true,
+  });
+
   // Cấu hình Validation
   app.useGlobalPipes(
     new ValidationPipe({

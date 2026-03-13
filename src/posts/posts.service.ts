@@ -22,6 +22,7 @@ export class PostsService {
       .find()
       .sort({ createdAt: -1 })
       .populate('author', 'fullName avatar')
+      .populate('comments.author', 'fullName avatar')
       .exec();
   }
 
@@ -29,6 +30,7 @@ export class PostsService {
     const post = await this.postModel
       .findById(id)
       .populate('author', 'fullName avatar')
+      .populate('comments.author', 'fullName avatar')
       .exec();
     if (!post) {
       throw new NotFoundException('Không tìm thấy bài viết');
@@ -61,7 +63,7 @@ export class PostsService {
       post.likes.splice(index, 1);
     }
 
-    return post.save();
+    return (await post.save()).populate('comments.author', 'fullName avatar');
   }
 
   async addComment(
