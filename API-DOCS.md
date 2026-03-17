@@ -71,6 +71,24 @@ Authorization: Bearer <access_token>
 }
 ```
 
+### Notification
+
+```json
+{
+  "_id": "ObjectId",
+  "recipient": "userId (Người nhận thông báo)",
+  "issuer": {
+    "_id": "ObjectId",
+    "fullName": "Người thực hiện hành động",
+    "avatar": "URL ảnh"
+  },
+  "type": "like | comment | friend_request | friend_accept",
+  "post": "postId (Nếu thông báo liên quan đến bài viết)",
+  "isRead": false,
+  "createdAt": "Timestamp"
+}
+```
+
 ---
 
 ## 🛡️ Authentication APIs
@@ -401,6 +419,84 @@ POST /posts/:id/comment
 
 ---
 
+## 🔔 Notifications APIs
+
+### 13. Lấy danh sách thông báo
+```
+GET /notifications
+```
+🔒 **Yêu cầu xác thực** — Bearer Token
+
+**Query Params:**
+- `limit`: Số lượng thông báo (mặc định 20)
+- `offset`: Vị trí bắt đầu (mặc định 0)
+
+**Response `200`:** Trả về mảng các thông báo.
+
+---
+
+### 14. Lấy số lượng thông báo chưa đọc
+```
+GET /notifications/unread-count
+```
+🔒 **Yêu cầu xác thực** — Bearer Token
+
+**Response `200`:**
+```json
+{ "unreadCount": 5 }
+```
+
+---
+
+### 15. Đánh dấu một thông báo là đã đọc
+```
+PATCH /notifications/:id/read
+```
+🔒 **Yêu cầu xác thực** — Bearer Token
+
+---
+
+### 16. Đánh dấu tất cả thông báo là đã đọc
+```
+PATCH /notifications/read-all
+```
+🔒 **Yêu cầu xác thực** — Bearer Token
+
+---
+
+### 17. Xóa một thông báo
+```
+DELETE /notifications/:id
+```
+🔒 **Yêu cầu xác thực** — Bearer Token
+
+---
+
+## 🌐 WebSocket (Real-time Notifications)
+
+**URL:** `ws://localhost:3000` (Socket.io)
+
+**Xác thực (Authentication):**
+Client cần truyền JWT Token khi kết nối. Server hỗ trợ các cách sau:
+1.  **Auth Object (Khuyên dùng):**
+    ```javascript
+    const socket = io("http://localhost:3000", {
+      auth: { token: "Bearer <YOUR_JWT_TOKEN>" }
+    });
+    ```
+2.  **Headers:**
+    ```javascript
+    const socket = io("http://localhost:3000", {
+      extraHeaders: { Authorization: "Bearer <YOUR_JWT_TOKEN>" }
+    });
+    ```
+
+**Sự kiện lắng nghe (Client Listen):**
+- `new_notification`: Nhận dữ liệu thông báo mới nhất.
+    - Dữ liệu trả về: `Notification Object` (giống Data Model ở trên).
+
+---
+
 ## ⚠️ Error Format
 
 Tất cả lỗi trả về đều có format thống nhất:
@@ -425,6 +521,88 @@ Tất cả lỗi trả về đều có format thống nhất:
   "error": "Bad Request"
 }
 ```
+
+---
+
+---
+
+## 💬 Chat APIs
+
+### 18. Tạo cuộc hội thoại mới
+```
+POST /chat/conversations
+```
+🔒 **Yêu cầu xác thực** — Bearer Token
+
+**Body:**
+```json
+{
+  "memberIds": ["userId1", "userId2"],
+  "type": "private | group",
+  "name": "Tên nhóm (nếu là group)"
+}
+```
+> **Lưu ý:** 
+> - Với `private`: `memberIds` chỉ được có 1 ID và phải là bạn bè.
+> - Với `group`: Những người được thêm phải là bạn bè của người tạo.
+
+---
+
+### 19. Lấy danh sách hội thoại
+```
+GET /chat/conversations
+```
+🔒 **Yêu cầu xác thực** — Bearer Token
+
+---
+
+### 20. Lấy danh sách tin nhắn
+```
+GET /chat/conversations/:id/messages
+```
+🔒 **Yêu cầu xác thực** — Bearer Token
+
+**Query Params:**
+- `limit`: Mặc định 50.
+- `offset`: Mặc định 0.
+
+---
+
+### 21. Gửi tin nhắn
+```
+POST /chat/conversations/:id/messages
+```
+🔒 **Yêu cầu xác thực** — Bearer Token
+
+**Body:**
+```json
+{
+  "content": "Nội dung tin nhắn",
+  "type": "text | image | file"
+}
+```
+
+---
+
+### 22. Bảo mật tin nhắn (Message Encryption)
+
+Nội dung tin nhắn (`content`) được Backend bảo vệ bằng thuật toán mã hóa **AES-256-CBC**.
+
+- **Lưu trữ:** Dữ liệu trong Database được lưu dưới dạng chuỗi Hex đã mã hóa để đảm bảo an toàn.
+- **Truy xuất:** Backend tự động giải mã tin nhắn trước khi trả về qua API (`GET /chat/conversations/:id/messages`) và WebSocket (`new_message`).
+- **Frontend:** Không cần thực hiện thêm bước giải mã nào, dữ liệu nhận được luôn là văn bản thuần túy (Plain Text).
+
+---
+
+## 🌐 WebSocket Chat
+
+**URL:** `ws://localhost:3000` (Cùng port với Notifications)
+
+**Sự kiện:**
+1.  **Client Emit:** `join_conversation`
+    - Gửi `conversationId` để tham gia phòng chat.
+2.  **Server Emit:** `new_message`
+    - Nhận tin nhắn mới real-time.
 
 ---
 
@@ -503,4 +681,4 @@ await api.post(`/posts/${postId}/comment`, { content: 'Nice!' });
 
 ---
 
-*Cập nhật lần cuối: 12/03/2026*
+*Cập nhật lần cuối: 16/03/2026*

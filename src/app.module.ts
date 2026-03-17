@@ -6,6 +6,9 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PostsModule } from './posts/posts.module';
+import { FriendshipsModule } from './friendships/friendships.module';
+import { ChatModule } from './chat/chat.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -20,6 +23,9 @@ import { PostsModule } from './posts/posts.module';
     UsersModule,
     AuthModule,
     PostsModule,
+    NotificationsModule,
+    FriendshipsModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -2,12 +2,18 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Post } from './schemas/post.schema';
+import { User } from '../users/schemas/user.schema';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UserRole } from '../users/enums/user-role.enum';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class PostsService {
-  constructor(@InjectModel(Post.name) private postModel: Model<Post>) {}
+  constructor(
+    @InjectModel(Post.name) private postModel: Model<Post>,
+    @InjectModel(User.name) private userModel: Model<User>,
+    private notificationsService: NotificationsService,
+  ) {}
 
   async create(createPostDto: CreatePostDto, userId: string): Promise<Post> {
     const newPost = new this.postModel({
@@ -59,6 +65,20 @@ export class PostsService {
 
     if (index === -1) {
       post.likes.push(userIdObj);
+      // Gửi thông báo like (chỉ khi không phải tự like bài mình)
+      if (post.author['_id'].toString() !== userId) {
+        const issuer = await this.userModel.findById(userId).select('fullName avatar').exec();
+        await this.notificationsService.createAndNotify({
+          recipient: post.author['_id'].toString(),
+          issuer: {
+            _id: userId,
+            fullName: issuer?.fullName || 'Người dùng',
+            avatar: issuer?.avatar || '',
+          },
+          type: 'like',
+          post: id,
+        });
+      }
     } else {
       post.likes.splice(index, 1);
     }
@@ -78,6 +98,23 @@ export class PostsService {
       createdAt: new Date(),
     });
 
-    return (await post.save()).populate('comments.author', 'fullName avatar');
+    const savedPost = await post.save();
+    
+    // Gửi thông báo comment (chỉ khi không phải tự comment bài mình)
+    if (post.author['_id'].toString() !== userId) {
+      const issuer = await this.userModel.findById(userId).select('fullName avatar').exec();
+      await this.notificationsService.createAndNotify({
+        recipient: post.author['_id'].toString(),
+        issuer: {
+          _id: userId,
+          fullName: issuer?.fullName || 'Người dùng',
+          avatar: issuer?.avatar || '',
+        },
+        type: 'comment',
+        post: id,
+      });
+    }
+
+    return savedPost.populate('comments.author', 'fullName avatar');
   }
 }
